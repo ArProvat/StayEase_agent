@@ -1,1 +1,17 @@
-# Python dependencies
+fastapi
+uvicorn[standard]   
+ 
+asyncpg             
+psycopg2-binary
+
+langchain-core
+langchain-groq      
+langgraph           
+langgraph-checkpoint-postgres
+ 
+pydantic
+pydantic-settings
+python-dotenv
+
+python-multipart
+ 
