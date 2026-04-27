@@ -3,7 +3,7 @@ import logging
 
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path as FilePath
 from fastapi.responses import FileResponse
@@ -62,6 +62,8 @@ def health_check():
 
 @app.get("/test-chat")
 def test_chat_ui():
+    if not TEST_CHAT_UI.exists():
+        raise HTTPException(status_code=404, detail="test-chat UI not found")
     return FileResponse(TEST_CHAT_UI)
 
 

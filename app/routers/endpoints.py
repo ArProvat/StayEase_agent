@@ -28,6 +28,49 @@ def _sse_event(event: str, data: dict[str, Any]) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=True)}\n\n"
 
 
+def _is_rate_limit_error(exc: Exception) -> bool:
+    status_code = getattr(exc, "status_code", None)
+    if status_code == 429:
+        return True
+
+    response = getattr(exc, "response", None)
+    if response is not None and getattr(response, "status_code", None) == 429:
+        return True
+
+    message = str(exc).lower()
+    return "rate limit" in message or "429" in message
+
+
+def _build_fallback_assistant_message(conversation_id: str, exc: Exception) -> dict[str, Any]:
+    if _is_rate_limit_error(exc):
+        content = (
+            "Sorry, I’m temporarily unavailable because the AI provider rate limit has been reached. "
+            "Please try again in a little while."
+        )
+        escalated = False
+        progress = "failed:rate_limit"
+    else:
+        content = (
+            "Sorry, something went wrong while handling your request. "
+            "Please try again."
+        )
+        escalated = True
+        progress = "failed:chat_message"
+
+    return {
+        "role": "assistant",
+        "content": content,
+        "timestamp": _utc_now_iso(),
+        "metadata": {
+            "escalated": escalated,
+            "progress": progress,
+            "intent": None,
+            "error": str(exc),
+            "conversation_id": conversation_id,
+        },
+    }
+
+
 def _extract_final_ai_message(messages: list[BaseMessage]) -> str:
     for message in reversed(messages):
         if isinstance(message, AIMessage):
@@ -104,12 +147,17 @@ async def send_guest_message(conversation_id: str, payload: ChatMessageCreate) -
             )
         except Exception as exc:
             logger.exception("Failed to process conversation_id=%s", conversation_id)
+            assistant_message = _build_fallback_assistant_message(conversation_id, exc)
+            append_messages(
+                conversation_id,
+                [assistant_message],
+                escalated=bool(assistant_message["metadata"]["escalated"]),
+            )
             yield _sse_event(
-                "error",
+                "final_message",
                 {
                     "conversation_id": conversation_id,
-                    "detail": "Failed to process chat message",
-                    "error": str(exc),
+                    "message": assistant_message,
                 },
             )
         finally:

@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StayEase Test Chat</title>
+  <style>
+    :root {
+      --bg: #f3efe6;
+      --panel: rgba(255, 252, 246, 0.92);
+      --panel-strong: #fffaf0;
+      --text: #1f2933;
+      --muted: #66788a;
+      --accent: #0f766e;
+      --accent-strong: #115e59;
+      --accent-soft: #d7f3ef;
+      --border: rgba(31, 41, 51, 0.12);
+      --danger: #b42318;
+      --shadow: 0 20px 60px rgba(31, 41, 51, 0.12);
+      --radius: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(180, 35, 24, 0.12), transparent 28%),
+        linear-gradient(135deg, #efe7da 0%, #f8f4ec 55%, #ece8df 100%);
+    }
+
+    .shell {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 24px auto;
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 20px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .sidebar {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .eyebrow {
+      margin: 0 0 6px;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent-strong);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1;
+      font-weight: 700;
+    }
+
+    .lede {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .label {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    input,
+    textarea,
+    button {
+      font: inherit;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.72);
+      padding: 14px 16px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: rgba(15, 118, 110, 0.5);
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+    }
+
+    textarea {
+      min-height: 132px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .secondary {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-weight: 700;
+    }
+
+    .ghost {
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .meta-card {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: var(--panel-strong);
+      border: 1px solid var(--border);
+    }
+
+    .meta-card strong,
+    .meta-card span {
+      display: block;
+    }
+
+    .meta-card strong {
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .meta-card span {
+      word-break: break-all;
+      font-size: 14px;
+    }
+
+    .chat {
+      min-height: calc(100vh - 48px);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 24px 26px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: end;
+    }
+
+    .chat-header h2 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .chat-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .live-pill {
+      align-self: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(15, 118, 110, 0.12);
+      color: var(--accent-strong);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .messages {
+      padding: 22px 26px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 16px 18px;
+      border-radius: 22px;
+      line-height: 1.55;
+      position: relative;
+      animation: rise 180ms ease;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #0f766e, #147d75);
+      color: #fff;
+      border-bottom-right-radius: 8px;
+    }
+
+    .message.assistant {
+      align-self: flex-start;
+      background: #fffdf8;
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 8px;
+    }
+
+    .message.system {
+      align-self: center;
+      max-width: 100%;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(31, 41, 51, 0.06);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .message.error {
+      align-self: center;
+      max-width: 100%;
+      background: rgba(180, 35, 24, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(180, 35, 24, 0.2);
+    }
+
+    .message .meta {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    .composer {
+      padding: 18px 26px 24px;
+      border-top: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,250,240,0.92) 42%);
+    }
+
+    .composer-note {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 960px) {
+      .shell {
+        width: min(100vw - 20px, 100%);
+        grid-template-columns: 1fr;
+      }
+
+      .chat {
+        min-height: auto;
+      }
+
+      .messages {
+        min-height: 48vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="panel sidebar">
+      <div>
+        <p class="eyebrow">StayEase</p>
+        <h1>Test Chat</h1>
+      </div>
+      <p class="lede">Use this page to exercise the streaming chat API, reuse a conversation thread, and inspect saved history from the same backend.</p>
+
+      <div class="field">
+        <label class="label" for="conversationId">Conversation ID</label>
+        <input id="conversationId" autocomplete="off">
+      </div>
+
+      <div class="button-row">
+        <button id="newConversationBtn" class="secondary" type="button">New Thread</button>
+        <button id="loadHistoryBtn" class="ghost" type="button">Load History</button>
+      </div>
+
+      <div class="meta-card">
+        <strong>POST Endpoint</strong>
+        <span id="endpointLabel">/api/chat/{conversation_id}/message</span>
+      </div>
+
+      <div class="meta-card">
+        <strong>Status</strong>
+        <span id="statusLabel">Idle</span>
+      </div>
+
+      <div class="meta-card">
+        <strong>Last Tool</strong>
+        <span id="toolLabel">None</span>
+      </div>
+    </aside>
+
+    <main class="panel chat">
+      <div class="chat-header">
+        <div>
+          <h2>Conversation Stream</h2>
+          <p>Streams `status`, `tool_call`, `token`, `done`, and `error` events from the backend.</p>
+        </div>
+        <div id="livePill" class="live-pill">Ready</div>
+      </div>
+
+      <div id="messages" class="messages"></div>
+
+      <div class="composer">
+        <div class="field">
+          <label class="label" for="messageInput">Message</label>
+          <textarea id="messageInput" placeholder="Try: Find a 2-bedroom place in Cox's Bazar for 4 guests from 2026-05-10 to 2026-05-13"></textarea>
+        </div>
+        <div class="button-row" style="margin-top: 14px;">
+          <button id="sendBtn" class="primary" type="button">Send Message</button>
+          <button id="clearBtn" class="ghost" type="button">Clear View</button>
+        </div>
+        <p class="composer-note">The backend persists normal chat history separately from LangGraph checkpoints. This UI only helps you test both flows.</p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const conversationIdInput = document.getElementById("conversationId");
+    const messageInput = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const newConversationBtn = document.getElementById("newConversationBtn");
+    const loadHistoryBtn = document.getElementById("loadHistoryBtn");
+    const messagesEl = document.getElementById("messages");
+    const statusLabel = document.getElementById("statusLabel");
+    const toolLabel = document.getElementById("toolLabel");
+    const livePill = document.getElementById("livePill");
+    const endpointLabel = document.getElementById("endpointLabel");
+
+    let streaming = false;
+
+    function newConversationId() {
+      if (window.crypto && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      return `conv-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function setConversationId(id) {
+      conversationIdInput.value = id;
+      endpointLabel.textContent = `/api/chat/${id}/message`;
+    }
+
+    function setStreamingState(active) {
+      streaming = active;
+      sendBtn.disabled = active;
+      loadHistoryBtn.disabled = active;
+      newConversationBtn.disabled = active;
+      livePill.textContent = active ? "Streaming" : "Ready";
+      livePill.style.background = active ? "rgba(15, 118, 110, 0.2)" : "rgba(15, 118, 110, 0.12)";
+    }
+
+    function scrollMessagesToBottom() {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addMessage(role, content, meta = "") {
+      const node = document.createElement("article");
+      node.className = `message ${role}`;
+      if (meta) {
+        const metaEl = document.createElement("span");
+        metaEl.className = "meta";
+        metaEl.textContent = meta;
+        node.appendChild(metaEl);
+      }
+      const textEl = document.createElement("div");
+      textEl.textContent = content;
+      node.appendChild(textEl);
+      messagesEl.appendChild(node);
+      scrollMessagesToBottom();
+      return node;
+    }
+
+    function resetView() {
+      messagesEl.innerHTML = "";
+      toolLabel.textContent = "None";
+      statusLabel.textContent = "Idle";
+    }
+
+    function parseSseFrames(buffer) {
+      const frames = buffer.split("\n\n");
+      return {
+        frames: frames.slice(0, -1),
+        remainder: frames[frames.length - 1],
+      };
+    }
+
+    function decodeFrame(frame) {
+      const lines = frame.split("\n");
+      let eventName = "message";
+      const dataLines = [];
+
+      for (const line of lines) {
+        if (line.startsWith("event:")) {
+          eventName = line.slice(6).trim();
+        } else if (line.startsWith("data:")) {
+          dataLines.push(line.slice(5).trim());
+        }
+      }
+
+      let payload = {};
+      const raw = dataLines.join("\n");
+      if (raw) {
+        try {
+          payload = JSON.parse(raw);
+        } catch {
+          payload = { raw };
+        }
+      }
+
+      return { eventName, payload };
+    }
+
+    async function sendMessage() {
+      const conversationId = conversationIdInput.value.trim();
+      const content = messageInput.value.trim();
+
+      if (!conversationId) {
+        addMessage("error", "Conversation ID is required.");
+        return;
+      }
+
+      if (!content) {
+        addMessage("error", "Message content is required.");
+        return;
+      }
+
+      addMessage("user", content, "Guest");
+      messageInput.value = "";
+      statusLabel.textContent = "Sending message";
+      toolLabel.textContent = "None";
+      setStreamingState(true);
+
+      const assistantNode = addMessage("assistant", "", "Assistant");
+
+      try {
+        const response = await fetch(`/api/chat/${encodeURIComponent(conversationId)}/message`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ content }),
+        });
+
+        if (!response.ok || !response.body) {
+          assistantNode.remove();
+          addMessage("error", `Request failed with status ${response.status}.`);
+          statusLabel.textContent = "Request failed";
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) {
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const parsed = parseSseFrames(buffer);
+          buffer = parsed.remainder;
+
+          for (const frame of parsed.frames) {
+            if (!frame.trim()) {
+              continue;
+            }
+
+            const { eventName, payload } = decodeFrame(frame);
+
+            if (eventName === "status") {
+              statusLabel.textContent = payload.label || payload.node || "Running";
+              addMessage("system", `Node: ${payload.node || "unknown"} | ${payload.label || ""}`.trim());
+            } else if (eventName === "tool_call") {
+              toolLabel.textContent = payload.tool || "Unknown";
+              addMessage("system", `Tool call: ${payload.tool} ${payload.input ? JSON.stringify(payload.input) : ""}`.trim());
+            } else if (eventName === "token") {
+              assistantNode.lastChild.textContent += payload.content || "";
+              scrollMessagesToBottom();
+            } else if (eventName === "done") {
+              const finalContent = payload.message && payload.message.content ? payload.message.content : assistantNode.lastChild.textContent;
+              assistantNode.lastChild.textContent = finalContent;
+              statusLabel.textContent = payload.escalated ? "Completed with escalation" : "Completed";
+            } else if (eventName === "error") {
+              assistantNode.remove();
+              addMessage("error", payload.message || "Unknown SSE error.");
+              statusLabel.textContent = "Error";
+            }
+          }
+        }
+      } catch (error) {
+        assistantNode.remove();
+        addMessage("error", error instanceof Error ? error.message : String(error));
+        statusLabel.textContent = "Network error";
+      } finally {
+        setStreamingState(false);
+      }
+    }
+
+    async function loadHistory() {
+      const conversationId = conversationIdInput.value.trim();
+      if (!conversationId) {
+        addMessage("error", "Conversation ID is required before loading history.");
+        return;
+      }
+
+      statusLabel.textContent = "Loading history";
+
+      try {
+        const response = await fetch(`/api/chat/${encodeURIComponent(conversationId)}/history`);
+        if (!response.ok) {
+          addMessage("error", `History request failed with status ${response.status}.`);
+          statusLabel.textContent = "History load failed";
+          return;
+        }
+
+        const payload = await response.json();
+        resetView();
+
+        for (const message of payload.messages || []) {
+          const role = message.role === "assistant" ? "assistant" : "user";
+          const meta = role === "assistant" ? "Assistant" : "Guest";
+          addMessage(role, message.content || "", meta);
+        }
+
+        statusLabel.textContent = `Loaded ${payload.total ?? 0} messages`;
+      } catch (error) {
+        addMessage("error", error instanceof Error ? error.message : String(error));
+        statusLabel.textContent = "History load failed";
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    loadHistoryBtn.addEventListener("click", loadHistory);
+    clearBtn.addEventListener("click", resetView);
+    newConversationBtn.addEventListener("click", () => {
+      setConversationId(newConversationId());
+      resetView();
+      addMessage("system", "Started a new local conversation thread.");
+    });
+
+    messageInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        if (!streaming) {
+          sendMessage();
+        }
+      }
+    });
+
+    setConversationId(newConversationId());
+    addMessage("system", "Test UI ready. Send a message to start streaming.");
+  </script>
+</body>
+</html>
