@@ -1,4 +1,4 @@
+from langchain_groq import ChatGroq
 
-from langchain_openai import ChatOpenAI
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)

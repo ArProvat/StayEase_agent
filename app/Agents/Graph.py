@@ -1,12 +1,11 @@
-from Agents.Nodes import *
-from typing import Literal
+from app.Agents.Nodes import *
+from typing import Literal, Any
 from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.postgres import PostgresSaver
-from ..config import settings
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+import logging
+logger = logging.getLogger(__name__)
 
 
-checkpointer = PostgresSaver.from_conn_string(settings.DATABASE_URL)
-checkpointer.setup()
 
 def route_after_classification(
     state: AgentState,
@@ -28,38 +27,71 @@ def route_after_agent(
 
     return "__end__"
 
+graph: Any | None = None
+_checkpointer_cm: Any | None = None
+_checkpointer: AsyncPostgresSaver | None = None
+
+def build_graph(checkpointer=None):
+    builder = StateGraph(AgentState)
+
+    builder.add_node("classify_node", classify_node)
+    builder.add_node("greeting_node", greeting_node)
+    builder.add_node("agent_node", agent_node)
+    builder.add_node("escalation_node", escalation_node)
+
+    builder.add_edge(START, "classify_node")
+
+    builder.add_conditional_edges(
+        "classify_node",
+        route_after_classification,
+        {
+            "greeting_node": "greeting_node",
+            "agent_node": "agent_node",
+            "escalation_node": "escalation_node",
+        },
+    )
+
+    builder.add_edge("greeting_node", END)
+
+    builder.add_conditional_edges(
+        "agent_node",
+        route_after_agent,
+        {
+            "escalation_node": "escalation_node",
+            "__end__": END,
+        },
+    )
+
+    builder.add_edge("escalation_node", END)
+
+    return builder.compile(checkpointer=checkpointer)
 
 
-builder = StateGraph(AgentState)
+async def init_graph(checkpoint_dsn: str) -> None:
+    global graph, _checkpointer_cm, _checkpointer
 
-builder.add_node("classify_node", classify_node)
-builder.add_node("greeting_node", greeting_node)
-builder.add_node("agent_node", agent_node)
-builder.add_node("escalation_node", escalation_node)
+    if graph is not None:
+        return
 
-builder.add_edge(START, "classify_node")
+    _checkpointer_cm = AsyncPostgresSaver.from_conn_string(checkpoint_dsn)
+    _checkpointer = await _checkpointer_cm.__aenter__()
+    await _checkpointer.setup()
+    graph = build_graph(checkpointer=_checkpointer)
+    logger.info("LangGraph checkpointer ready.")
 
-builder.add_conditional_edges(
-    "classify_node",
-    route_after_classification,
-    {
-        "greeting_node": "greeting_node",
-        "agent_node": "agent_node",
-        "escalation_node": "escalation_node",
-    },
-)
 
-builder.add_edge("greeting_node", END)
+async def close_graph() -> None:
+    global graph, _checkpointer_cm, _checkpointer
 
-builder.add_conditional_edges(
-    "agent_node",
-    route_after_agent,
-    {
-        "escalation_node": "escalation_node",
-        "__end__": END,
-    },
-)
+    if _checkpointer_cm is not None:
+        await _checkpointer_cm.__aexit__(None, None, None)
 
-builder.add_edge("escalation_node", END)
+    graph = None
+    _checkpointer = None
+    _checkpointer_cm = None
 
-graph = builder.compile(checkpointer=checkpointer)
+
+def get_graph():
+    if graph is None:
+        raise RuntimeError("LangGraph is not initialised. Call init_graph() at startup.")
+    return graph

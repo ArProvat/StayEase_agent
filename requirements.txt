@@ -4,6 +4,7 @@ uvicorn[standard]
 asyncpg             
 psycopg2-binary
 
+langchain
 langchain-core
 langchain-groq      
 langgraph           
